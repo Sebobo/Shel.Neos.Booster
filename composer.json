@@ -2,6 +2,7 @@
     "name": "shel/neos-booster",
     "description": "Performance improvements for Neos CMS",
     "type": "neos-package",
+    "license": "GPL-3.0",
     "require": {
         "neos/neos": "^5.3 || ^7.0 || dev-master"
     },
@@ -10,6 +11,14 @@
             "Shel\\Neos\\Booster\\": "Classes/"
         }
     },
+    "authors": [
+        {
+            "name": "Sebastian Helzle",
+            "email": "sebastian@helzle.it",
+            "homepage": "https://www.helzle.it",
+            "role": "Developer"
+        }
+    ],
     "extra": {
         "neos": {
             "package-key": "Shel.Neos.Booster"
