@@ -1,0 +1,10 @@
+Neos:
+  Neos:
+    fusion:
+      autoInclude:
+        Shel.Neos.Booster: true
+
+Shel:
+  Neos:
+    Booster:
+      preloadNodes: true

@@ -1,0 +1,18 @@
+{
+    "name": "shel/neos-booster",
+    "description": "Performance improvements for Neos CMS",
+    "type": "neos-package",
+    "require": {
+        "neos/neos": "^5.3 || ^7.0 || dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Shel\\Neos\\Booster\\": "Classes/"
+        }
+    },
+    "extra": {
+        "neos": {
+            "package-key": "Shel.Neos.Booster"
+        }
+    }
+}

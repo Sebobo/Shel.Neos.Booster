@@ -1,0 +1,10 @@
+prototype(Neos.Neos:Page) {
+    # This helper preloads content from the homepage, current page and doku page
+    # so only a few queries need to be executed during page rendering
+    nodePreloader = Shel.Neos.Booster:Helper.PreloadNodes {
+        @position = 'start 9999'
+        nodes = ${[documentNode]}
+        @if.enabled = ${Configuration.setting('Shel.Neos.Booster.preloadNodes')}
+    }
+}
+
