@@ -1,0 +1,5 @@
+# Skip rendering removed content wrappings as they have no use for the React Neos UI
+# @deprecated with Neos 7.2 - see https://github.com/neos/neos-development-collection/pull/3358
+prototype(Neos.Neos:ContentCollectionRenderer) {
+    @process.appendRemovedContentForBackend >
+}
