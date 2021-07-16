@@ -8,3 +8,5 @@ Shel:
   Neos:
     Booster:
       preloadNodes: true
+      aspects:
+        enabled: false
