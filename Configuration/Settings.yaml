@@ -9,4 +9,6 @@ Shel:
     Booster:
       preloadNodes: true
       aspects:
+        enabled: true
+      timedContent:
         enabled: false
