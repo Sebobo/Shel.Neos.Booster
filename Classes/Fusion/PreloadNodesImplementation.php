@@ -93,7 +93,10 @@ class PreloadNodesImplementation extends AbstractFusionObject
                 }
             }
         }
-        $referenceMap = array_merge(...$referenceMap);
+
+        if (count($referenceMap) > 0) {
+            $referenceMap = array_merge(...$referenceMap);
+        }
 
         // Store children for each node
         foreach ($parentMap as $parentPath => $childNodes) {
