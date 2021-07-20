@@ -1,8 +1,9 @@
 ##
-# Preloads recursively all content node children of the given nodes
+# Preloads recursively all content node children of the given nodes and optionally the document node children
 # Content references are also being followed 1 time (to prevent endless loops)
 #
 prototype(Shel.Neos.Booster:Helper.PreloadNodes) {
   @class = 'Shel\\Neos\\Booster\\Fusion\\PreloadNodesImplementation'
   nodes = ${[]}
+  preloadDocumentNodes = ${[]}
 }

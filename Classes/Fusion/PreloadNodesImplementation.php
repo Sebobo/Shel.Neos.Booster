@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Shel\Neos\Booster\Fusion;
@@ -28,12 +29,14 @@ class PreloadNodesImplementation extends AbstractFusionObject
      */
     protected $contextFactory;
 
-    /**
-     */
     public function evaluate(): void
     {
         foreach ($this->getNodes() as $node) {
             $this->preloadContentNodes($node);
+        }
+
+        foreach ($this->getPreloadDocumentNodes() as $node) {
+            $this->preloadDocumentNodes($node);
         }
     }
 
@@ -43,6 +46,44 @@ class PreloadNodesImplementation extends AbstractFusionObject
     public function getNodes(): array
     {
         return $this->fusionValue('nodes');
+    }
+
+    /**
+     * @return array<NodeInterface>
+     */
+    public function getPreloadDocumentNodes(): array
+    {
+        return $this->fusionValue('preloadDocumentNodes');
+    }
+
+    protected function preloadDocumentNodes(NodeInterface $parentNode): void
+    {
+        $documentNodes = $this->nodeDataRepository->findByParentAndNodeTypeInContext(
+            $parentNode->getPath(),
+            'Neos.Neos:Document',
+            $parentNode->getContext(),
+            true
+        );
+        $parentMap = [];
+
+        $cache = $parentNode->getContext()->getFirstLevelNodeCache();
+        foreach ($documentNodes as $documentNode) {
+            $cache->setByIdentifier($documentNode->getIdentifier(), $documentNode);
+            if (!isset($parentMap[$documentNode->getParentPath()])) {
+                $parentMap[$documentNode->getParentPath()] = [];
+            }
+            $parentMap[$documentNode->getParentPath()][] = $documentNode;
+
+            // Set childnode list empty to prevent queries for documents without further document children later
+            if (!isset($parentMap[$documentNode->getPath()])) {
+                $parentMap[$documentNode->getPath()] = [];
+            }
+        }
+
+        // Store children for each node
+        foreach ($parentMap as $parentPath => $childNodes) {
+            $cache->setChildNodesByPathAndNodeTypeFilter($parentPath, 'Neos.Neos:Document', $childNodes);
+        }
     }
 
     protected function preloadContentNodes(NodeInterface $parentNode, bool $followReferences = true): void

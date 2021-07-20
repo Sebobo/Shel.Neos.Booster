@@ -1,10 +1,13 @@
 prototype(Neos.Neos:Page) {
-    # This helper preloads content from the homepage, current page and doku page
-    # so only a few queries need to be executed during page rendering
     nodePreloader = Shel.Neos.Booster:Helper.PreloadNodes {
         @position = 'start 9999'
+
+        # Preload all content nodes which part of the current document
         nodes = ${[documentNode]}
         @if.enabled = ${Configuration.setting('Shel.Neos.Booster.preloadNodes')}
+
+        # Preload all document nodes of the site to speed up menu generation
+        preloadDocumentNodes = ${[site]}
+        preloadDocumentNodes.@if.enabled = ${Configuration.setting('Shel.Neos.Booster.preloadDocumentNodes')}
     }
 }
-

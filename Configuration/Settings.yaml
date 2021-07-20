@@ -8,6 +8,7 @@ Shel:
   Neos:
     Booster:
       preloadNodes: true
+      preloadDocumentNodes: true
       aspects:
         enabled: true
       timedContent:
