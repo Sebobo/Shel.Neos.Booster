@@ -6,6 +6,7 @@ namespace Shel\Neos\Booster\Fusion;
 
 use Neos\ContentRepository\Domain\Model\NodeInterface;
 use Neos\ContentRepository\Domain\Repository\NodeDataRepository;
+use Neos\ContentRepository\Domain\Service\Cache\FirstLevelNodeCache;
 use Neos\ContentRepository\Domain\Service\ContextFactoryInterface;
 use Neos\Flow\Annotations as Flow;
 use Neos\Fusion\FusionObjects\AbstractFusionObject;
@@ -34,10 +35,6 @@ class PreloadNodesImplementation extends AbstractFusionObject
         foreach ($this->getNodes() as $node) {
             $this->preloadContentNodes($node);
         }
-
-        foreach ($this->getPreloadDocumentNodes() as $node) {
-            $this->preloadDocumentNodes($node);
-        }
     }
 
     /**
@@ -48,45 +45,21 @@ class PreloadNodesImplementation extends AbstractFusionObject
         return $this->fusionValue('nodes');
     }
 
-    /**
-     * @return array<NodeInterface>
-     */
-    public function getPreloadDocumentNodes(): array
+    protected function preloadContentNodes(NodeInterface $parentNode): void
     {
-        return $this->fusionValue('preloadDocumentNodes');
-    }
-
-    protected function preloadDocumentNodes(NodeInterface $parentNode): void
-    {
-        $documentNodes = $this->nodeDataRepository->findByParentAndNodeTypeInContext(
-            $parentNode->getPath(),
-            'Neos.Neos:Document',
-            $parentNode->getContext(),
-            true
-        );
-        $parentMap = [];
-
+        $nodesByParent = [];
         $cache = $parentNode->getContext()->getFirstLevelNodeCache();
-        foreach ($documentNodes as $documentNode) {
-            $cache->setByIdentifier($documentNode->getIdentifier(), $documentNode);
-            if (!isset($parentMap[$documentNode->getParentPath()])) {
-                $parentMap[$documentNode->getParentPath()] = [];
-            }
-            $parentMap[$documentNode->getParentPath()][] = $documentNode;
 
-            // Set childnode list empty to prevent queries for documents without further document children later
-            if (!isset($parentMap[$documentNode->getPath()])) {
-                $parentMap[$documentNode->getPath()] = [];
-            }
-        }
+        $this->collectChildNodesRecursively($nodesByParent, $parentNode, $cache);
 
         // Store children for each node
-        foreach ($parentMap as $parentPath => $childNodes) {
-            $cache->setChildNodesByPathAndNodeTypeFilter($parentPath, 'Neos.Neos:Document', $childNodes);
+        foreach ($nodesByParent as $parentPath => $childNodes) {
+            $cache->setChildNodesByPathAndNodeTypeFilter($parentPath, '', $childNodes);
+            $cache->setChildNodesByPathAndNodeTypeFilter($parentPath, '!Neos.Neos:Document,!unstructured', $childNodes);
         }
     }
 
-    protected function preloadContentNodes(NodeInterface $parentNode, bool $followReferences = true): void
+    protected function collectChildNodesRecursively(array &$nodesByParent, NodeInterface $parentNode, FirstLevelNodeCache $cache, bool $followReferences = true): void
     {
         $parentNodes = [$parentNode];
 
@@ -106,24 +79,27 @@ class PreloadNodesImplementation extends AbstractFusionObject
                 true
             );
         }
+
         $loadedChildren = array_merge(...$loadedChildren);
 
+        if (count($loadedChildren) === 0) {
+            return;
+        }
+
         $referenceMap = [];
-        $parentMap = [];
-        $cache = $parentNode->getContext()->getFirstLevelNodeCache();
 
         /** @var array<NodeInterface> $allChildren */
         $allChildren = array_merge($parentNodes, $loadedChildren);
         foreach ($allChildren as $childNode) {
             $cache->setByIdentifier($childNode->getIdentifier(), $childNode);
-            if (!isset($parentMap[$childNode->getParentPath()])) {
-                $parentMap[$childNode->getParentPath()] = [];
+            if (!isset($nodesByParent[$childNode->getParentPath()])) {
+                $nodesByParent[$childNode->getParentPath()] = [];
             }
-            $parentMap[$childNode->getParentPath()][] = $childNode;
+            $nodesByParent[$childNode->getParentPath()][] = $childNode;
 
             // Set childnode list empty to prevent queries for empty content collections later
-            if (!isset($parentMap[$childNode->getPath()])) {
-                $parentMap[$childNode->getPath()] = [];
+            if (!isset($nodesByParent[$childNode->getPath()])) {
+                $nodesByParent[$childNode->getPath()] = [];
             }
 
             // Collect referenced nodes to also load their children
@@ -137,19 +113,13 @@ class PreloadNodesImplementation extends AbstractFusionObject
 
         if (count($referenceMap) > 0) {
             $referenceMap = array_merge(...$referenceMap);
-        }
 
-        // Store children for each node
-        foreach ($parentMap as $parentPath => $childNodes) {
-            $cache->setChildNodesByPathAndNodeTypeFilter($parentPath, '', $childNodes);
-            $cache->setChildNodesByPathAndNodeTypeFilter($parentPath, '!Neos.Neos:Document,!unstructured', $childNodes);
-        }
-
-        // Preload referenced nodes, but don't follow references recursively
-        /** @var NodeInterface $referenceNode */
-        foreach ($referenceMap as $referenceNode) {
-            if ($referenceNode->getNodeType()->isOfType('Neos.Neos:ContentCollection')) {
-                $this->preloadContentNodes($referenceNode, false);
+            // Preload referenced nodes, but don't follow references recursively
+            /** @var NodeInterface $referenceNode */
+            foreach ($referenceMap as $referenceNode) {
+                if ($referenceNode->getNodeType()->isOfType('Neos.Neos:ContentCollection')) {
+                    $this->collectChildNodesRecursively($nodesByParent, $referenceNode, $cache, false);
+                }
             }
         }
     }
